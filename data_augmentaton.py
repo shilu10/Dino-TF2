@@ -4,11 +4,13 @@ import tensorflow as tf
 import random
 import numpy as np 
 
+
 mean=[0.485, 0.456, 0.406],
 std_dev=[0.229, 0.224, 0.225],
 
 AUTO = tf.data.experimental.AUTOTUNE
 
+# Reference: https://github.com/google-research/simclr/blob/master/data_util.py
 
 @tf.function
 def gaussian_blur(image, kernel_size=23, padding='SAME'):
@@ -43,7 +45,7 @@ def color_jitter(x, s=0.5):
     x = tf.image.random_contrast(x, lower=1-0.8*s, upper=1+0.8*s)
     x = tf.image.random_saturation(x, lower=1-0.8*s, upper=1+0.8*s)
     x = tf.image.random_hue(x, max_delta=0.2*s)
-    x = tf.clip_by_value(x, 0, 1)
+    x = tf.clip_by_value(x, 0.0, 255.0)
     return x
 
 @tf.function
