@@ -29,15 +29,14 @@ class DinoHead(tf.keras.models.Model):
     def mlp(self):
         layer = []
         layer.append(tf.keras.layers.Dense(self.hidden_dim, input_shape=(self.in_dim,)))
-
         if self.use_bn:
             layer.append(tf.keras.layers.BatchNormalization())
-        layer.append(tf.keras.Activation(tf.nn.activations.gelu))
+        layer.append(tf.keras.layers.Activation(tf.nn.gelu))
         for _ in range(self.nlayers - 2):
             layer.append(tf.keras.layers.Dense(self.hidden_dim))
         if self.use_bn:
             layer.append(tf.keras.layers.BatchNormalization())
-        layer.append(tf.keras.Activation(tf.nn.activations.gelu))
+        layer.append(tf.keras.layers.Activation(tf.nn.gelu))
         layer.append(tf.keras.layers.Dense(self.bottleneck_dim))
         return tf.keras.Sequential(layer)
 
