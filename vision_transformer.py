@@ -44,12 +44,13 @@ class TFViTPatchEmbeddings(tf.keras.layers.Layer):
                     name="projection"
                 )
 
-    def call(self, x: tf.Tensor, interpolate_pos_encoding, training: bool = False) -> tf.Tensor:
+    def call(self, x: tf.Tensor, interpolate_pos_encoding=True, training: bool = False) -> tf.Tensor:
         shape = tf.shape(x)
         batch_size, height, width, n_channel = shape[0], shape[1], shape[2], shape[3]
-        
+        num_patches = (width.numpy() / self.patch_size[0]) * (height.numpy() / self.patch_size[1])
+
         if not interpolate_pos_encoding:
-            if tf.executing_eagerly():
+           if tf.executing_eagerly():
                 if height != self.image_size[0] or width != self.image_size[1]:
                     raise ValueError(
                         f"Input image size ({height}*{width}) doesn't match model"
@@ -57,7 +58,7 @@ class TFViTPatchEmbeddings(tf.keras.layers.Layer):
                     )
 
         projection = self.projection(x)
-        embeddings = tf.reshape(tensor=projection, shape=(batch_size, self.num_patches, -1))
+        embeddings = tf.reshape(tensor=projection, shape=(batch_size, num_patches, -1))
 
         return embeddings
 
@@ -76,6 +77,9 @@ class TFViTEmbeddings(tf.keras.layers.Layer):
 
     def build(self, input_shape: tf.TensorShape):
         num_patches = self.patch_embeddings.num_patches
+        #patch_size = self.config.patch_size
+        #patch_size = patch_size if isinstance(patch_size, collections.abc.Iterable) else (patch_size, patch_size)
+        #num_patches = (input_shape[1] // patch_size[0]) * (input_shape[2] // patch_size[1])
         self.cls_token = self.add_weight(
             shape=(1, 1, self.config.projection_dim),
             initializer=get_initializer(self.config.initializer_range),
@@ -90,7 +94,7 @@ class TFViTEmbeddings(tf.keras.layers.Layer):
             trainable=True,
             name="dist_token",
         )
-          num_patches += 1 
+          num_patches += 1
 
         self.position_embeddings = self.add_weight(
             shape=(1, num_patches + 1, self.config.projection_dim),
@@ -100,7 +104,7 @@ class TFViTEmbeddings(tf.keras.layers.Layer):
         )
 
         super().build(input_shape)
-        
+
     def interpolate_pos_encoding(self, embeddings, height, width) -> tf.Tensor:
         """
         This method allows to interpolate the pre-trained position encodings, to be able to use the model on higher
@@ -135,7 +139,7 @@ class TFViTEmbeddings(tf.keras.layers.Layer):
         patch_pos_embed = tf.reshape(tensor=patch_pos_embed, shape=(1, -1, dim))
         return tf.concat(values=(class_pos_embed, patch_pos_embed), axis=1)
 
-    def call(self, x,interpolate_pos_encoding: bool = False, training=False):
+    def call(self, x,interpolate_pos_encoding: bool = True, training=False):
         shape = tf.shape(x)
         batch_size, height, width, n_channels = shape[0], shape[1], shape[2], shape[3]
 
@@ -144,16 +148,16 @@ class TFViTEmbeddings(tf.keras.layers.Layer):
         # repeating the class token for n batch size
         cls_tokens = tf.tile(self.cls_token, (batch_size, 1, 1))
 
-        if "distilled" in self.config.model_name: 
+        if "distilled" in self.config.model_name:
           dist_tokens = tf.tile(self.dist_token, (batch_size, 1, 1))
           if dist_tokens.dtype != patch_embeddings.dtype:
             dist_tokens = tf.cast(dist_tokens, patch_embeddings.dtype)
-        
+
         if cls_tokens.dtype != patch_embeddings.dtype:
-          cls_tokens = tf.cast(cls_tokens, patch_embeddings.dtype)            
+          cls_tokens = tf.cast(cls_tokens, patch_embeddings.dtype)
 
         # adding the [CLS] token to patch_embeeding
-        if 'distilled' in self.config.model_name: 
+        if 'distilled' in self.config.model_name:
           patch_embeddings = tf.concat([cls_tokens, dist_tokens, patch_embeddings], axis=1)
         else:
           patch_embeddings = tf.concat([cls_tokens, patch_embeddings], axis=1)
@@ -163,7 +167,7 @@ class TFViTEmbeddings(tf.keras.layers.Layer):
             encoded_patches = patch_embeddings + self.interpolate_pos_encoding(patch_embeddings, height, width)
         else:
             encoded_patches = patch_embeddings + self.position_embeddings
-            
+
         encoded_patches = self.dropout(encoded_patches)
 
         return encoded_patches
@@ -172,11 +176,11 @@ class TFViTEmbeddings(tf.keras.layers.Layer):
 def mlp(dropout_rate, hidden_units):
     mlp_block = keras.Sequential(
           [
-              tf.keras.layers.Dense(hidden_units[0], 
-                                   activation=tf.nn.gelu, 
+              tf.keras.layers.Dense(hidden_units[0],
+                                   activation=tf.nn.gelu,
                                    bias_initializer=keras.initializers.RandomNormal(stddev=1e-6)),
               tf.keras.layers.Dropout(dropout_rate),
-              tf.keras.layers.Dense(hidden_units[1], 
+              tf.keras.layers.Dense(hidden_units[1],
                                     bias_initializer=keras.initializers.RandomNormal(stddev=1e-6)),
               tf.keras.layers.Dropout(dropout_rate)
           ]
@@ -413,7 +417,7 @@ class TFVITTransformerBlock(keras.Model):
         x4 = StochasticDepth(self.drop_prob)(x4) if self.drop_prob else x4
 
         # second residual connection
-        outputs = Add()([x2, x4])
+        outputs = tf.keras.layers.Add()([x2, x4])
 
         if output_attentions:
             return outputs, attention_scores
