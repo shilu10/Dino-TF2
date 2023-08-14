@@ -428,9 +428,11 @@ class TFVITTransformerBlock(keras.Model):
 class ViTClassifier(keras.Model):
     """Vision Transformer base class."""
 
-    def __init__(self, config: ConfigDict, **kwargs):
+    def __init__(self, config: ConfigDict, output_attentions, **kwargs):
         super().__init__(**kwargs)
         self.config = config
+        self.num_classes = config.num_classes
+        self.output_attentions = output_attentions
 
         # Patch embed layer
         self.patch_embed = TFViTEmbeddings(config, name="patch_embedding")
@@ -445,20 +447,20 @@ class ViTClassifier(keras.Model):
         self.transformer_blocks = transformer_blocks
 
         if config.classifier == "gap":
-            self.gap_layer = layers.GlobalAvgPool1D()
+            self.gap_layer = tf.keras.layers.GlobalAvgPool1D()
 
         # Other layers.
         self.dropout = tf.keras.layers.Dropout(config.dropout_rate)
         self.layer_norm = tf.keras.layers.LayerNormalization(
             epsilon=config.layer_norm_eps
         )
-        if self.config.include_top:
-            self.head = tf.keras.layers.Dense(
+        
+        self.head = tf.keras.layers.Dense(
                 config.num_classes,
                 kernel_initializer="zeros",
                 dtype="float32",
                 name="classification_head",
-            )
+            ) if self.num_classes > 0 else tf.identity
 
     def call(self, inputs, training=None):
         n = tf.shape(inputs)[0]
@@ -491,10 +493,9 @@ class ViTClassifier(keras.Model):
         elif self.config.classifier == "gap":
             encoded_patches = self.gap_layer(representation)
 
-        if not self.config.include_top:
-            return encoded_patches, attention_scores
-
-        # Classification head.
-        else:
-            output = self.head(encoded_patches)
-            return output, attention_scores                                                                                                                                                        
+       
+        output = self.head(encoded_patches)
+        if not self.output_attentions:
+          return output
+          
+        return output, attention_scores

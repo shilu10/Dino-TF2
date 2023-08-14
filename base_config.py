@@ -3,11 +3,11 @@ import tensorflow as tf
 from ml_collections import ConfigDict 
 
 
-def get_baseconfig(model_type="deit_tiny_patch16_224", 
-                  image_size=224, 
-                  patch_size=16, 
-                  num_heads=3, 
-                  num_layers=12, 
+def get_baseconfig(model_type="deit_tiny_patch16_224",
+                  image_size=224,
+                  patch_size=16,
+                  num_heads=3,
+                  num_layers=12,
                   projection_dim=192,
                   init_values=None,
                   dropout_rate=0.0,
@@ -32,7 +32,7 @@ def get_baseconfig(model_type="deit_tiny_patch16_224",
     config.dropout_rate = dropout_rate
     config.initializer_range = 0.02
     config.layer_norm_eps = 1e-5
-    config.num_classes = 1000
+    config.num_classes = 0
     config.name = config.model_name
 
     config.n_channels = 3
@@ -40,4 +40,4 @@ def get_baseconfig(model_type="deit_tiny_patch16_224",
     config.mlp_units = [ 4 * config.projection_dim, config.projection_dim]
     config.include_top = True
 
-    return config.lock()                                                                                                                                                        
+    return config.lock()
