@@ -21,7 +21,7 @@ def train_dino(
     warmup_teacher_temp_epochs: int = 0,
     trainloader=None
   ):
-  
+
   student = ViTClassifier(config, False)
   teacher = ViTClassifier(config, False)
 
@@ -30,12 +30,8 @@ def train_dino(
   student = MultiCropWrapper(student, DinoHead(embed_dim, out_dim, use_bn_in_head, norm_last_layer))
   teacher = MultiCropWrapper(teacher, DinoHead(embed_dim, out_dim, use_bn_in_head))
 
-  
-
-  print(trainloader)
-
   dino_loss = DinoLoss(
-      out_dim, 
+      out_dim,
       local_crops_number+2,
       warmup_teacher_temp,
       teacher_temp,
@@ -58,13 +54,14 @@ def train_dino(
     # momentum parameter is increased to 1. during training with a cosine schedule
   momentum_schedule = cosine_scheduler(momentum_teacher, 1,
                                                epochs, len(trainloader))
-  
+
   opt = tf.keras.optimizers.SGD(learning_rate=lr)
 
   for epoch in range(epochs):
     epoch_loss = 0
-    for indx, train_batch in enumerate(trainloader):
-      indx = len(train_ds) * epoch + indx  # global training iteration 
+    print(f'epoch: {epoch}')
+    for indx, train_batch in enumerate(tqdm.tqdm(trainloader)):
+      indx = len(trainloader) * epoch + indx  # global training iteration
 
       # update lr and weight decay values
       opt.learning_rate = lr_schedule[indx]
@@ -79,17 +76,15 @@ def train_dino(
       grads = tape.gradient(loss, params)
       opt.apply_gradients(zip(grads, params))
 
-      epoch_loss += loss 
-      break
+      epoch_loss += loss
 
-    print(loss)
-    # update teacher model
-    m = momentum_schedule[indx]  # momentum parameter
-    teacher_weights = teacher.get_weights()
-    student_weights = student.get_weights()
-    for weight_indx in range(len(student_weights)):
-      teacher_weights[weight_indx] = (teacher_weights[weight_indx] * m) + (student_weights[weight_indx] * (1 - m))
-    
-    teacher.set_weights(teacher_weights)
+      # update teacher model
+      m = momentum_schedule[indx]  # momentum parameter
+      teacher_weights = teacher.get_weights()
+      student_weights = student.get_weights()
+      for weight_indx in range(len(student_weights)):
+        teacher_weights[weight_indx] = (teacher_weights[weight_indx] * m) + (student_weights[weight_indx] * (1 - m))
 
-    break
+      teacher.set_weights(teacher_weights)
+
+    print(f'epoch; {epoch}: {epoch_loss}')
