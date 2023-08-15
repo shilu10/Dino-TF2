@@ -425,7 +425,7 @@ class TFVITTransformerBlock(keras.Model):
         return outputs
 
 
-class ViTClassifier(keras.Model):
+class ViTClassifier(tf.keras.Model):
     """Vision Transformer base class."""
 
     def __init__(self, config: ConfigDict, output_attentions, **kwargs):
@@ -446,21 +446,35 @@ class ViTClassifier(keras.Model):
 
         self.transformer_blocks = transformer_blocks
 
-        if config.classifier == "gap":
-            self.gap_layer = tf.keras.layers.GlobalAvgPool1D()
-
         # Other layers.
         self.dropout = tf.keras.layers.Dropout(config.dropout_rate)
         self.layer_norm = tf.keras.layers.LayerNormalization(
             epsilon=config.layer_norm_eps
         )
-        
-        self.head = tf.keras.layers.Dense(
+
+    def build(self, input_shape):
+      self.head = tf.keras.layers.Dense(
                 config.num_classes,
                 kernel_initializer="zeros",
                 dtype="float32",
                 name="classification_head",
-            ) if self.num_classes > 0 else tf.identity
+            ) if self.num_classes > 0 else tf.identity 
+
+    def forward_blocks(self, encoded_patches):
+      # Initialize a dictionary to store attention scores from each transformer_block.
+      attention_scores = dict()
+
+      # Iterate over the number of layers and stack up blocks of
+      # Transformer.
+      for transformer_module in self.transformer_blocks:
+        # Add a Transformer block.
+        encoded_patches, attention_score = transformer_module(
+                encoded_patches,
+                output_attentions = True
+            )
+        attention_scores[f"{transformer_module.name}_att"] = attention_score
+
+      return encoded_patches
 
     def call(self, inputs, training=None):
         n = tf.shape(inputs)[0]
@@ -470,32 +484,17 @@ class ViTClassifier(keras.Model):
 
         encoded_patches = self.dropout(projected_patches)
 
-        # Initialize a dictionary to store attention scores from each transformer
-        # block.
-        attention_scores = dict()
-
-        # Iterate over the number of layers and stack up blocks of
-        # Transformer.
-        for transformer_module in self.transformer_blocks:
-            # Add a Transformer block.
-            encoded_patches, attention_score = transformer_module(
-                encoded_patches,
-                output_attentions = True
-            )
-            attention_scores[f"{transformer_module.name}_att"] = attention_score
+        encoded_patches = self.forward_blocks(encoded_patches)
 
         # Final layer normalization.
         representation = self.layer_norm(encoded_patches)
+        
+        output = representation[:, 0]
 
-        # Pool representation.
-        if self.config.classifier == "token":
-            encoded_patches = representation[:, 0]
-        elif self.config.classifier == "gap":
-            encoded_patches = self.gap_layer(representation)
+        return output
 
-       
-        output = self.head(encoded_patches)
-        if not self.output_attentions:
-          return output
-          
-        return output, attention_scores
+    def get_last_selfattention(self, inputs, training=False):
+      pass 
+
+    def get_intermediate_layer(self, inputs, training=False):
+      pass 
