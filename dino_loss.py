@@ -5,17 +5,18 @@ import numpy as np
 
 class DinoLoss(tf.keras.losses.Loss):
   def __init__(self,
-               out_dim,
-               ncrops,
-               warmup_teacher_temp,
-               teacher_temp,
-               warmup_teacher_temp_epochs,
-               nepochs,
-               student_temp=0.1,
-               center_momentum=0.9
-            ):
+               out_dim: int = 65536,
+               ncrops: int = 7,
+               warmup_teacher_temp : float =0.004,
+               teacher_temp: float = 0.04,
+               warmup_teacher_temp_epochs: int = 0,
+               nepochs: int = 100,
+               student_temp: float = 0.1,
+               center_momentum: float = 0.9,
+               **kwargs
+            )-> tf.keras.losses.Loss:
 
-    super(DinoLoss, self).__init__()
+    super(DinoLoss, self).__init__(**kwargs)
     self.student_temp = student_temp
     self.center_momentum = center_momentum
     self.ncrops = ncrops
@@ -29,7 +30,10 @@ class DinoLoss(tf.keras.losses.Loss):
       ))
     self.center = tf.zeros_like(out_dim, dtype=tf.float32)
 
-  def __call__(self, student_output, teacher_output, epoch):
+  def __call__(self, 
+               student_output: tf.Tensor, 
+               teacher_output: tf.Tensor, 
+               epoch: int) -> tf.Tensor:
     """
       Cross-entropy between softmax outputs of the teacher and student networks.
     """
@@ -53,16 +57,16 @@ class DinoLoss(tf.keras.losses.Loss):
         loss = tf.reduce_sum(
                     -q * tf.nn.log_softmax(student_out[v], axis=-1), axis=-1
                 )
-        
+
         total_loss += tf.math.reduce_mean(loss)
         n_loss_terms += 1
 
     total_loss /= n_loss_terms
-    print(self.center)
     self.update_center(teacher_output)
     return total_loss
 
-  def update_center(self, teacher_output):
+  def update_center(self, 
+                    teacher_output: tf.Tensor)-> None:
     """
       Update center used for teacher output.
     """
@@ -72,3 +76,21 @@ class DinoLoss(tf.keras.losses.Loss):
             self.center * self.center_momentum
             + batch_center * (1 - self.center_momentum)
         )
+    
+  def get_config(self):
+    config = super().get_config()
+    config.update(
+        {
+            'student_temp': self.student_temp,
+            'center_momentum': self.center_momentum,
+            'ncrops': self.ncrops
+        }
+      )
+    
+    return config 
+
+  @classmethod
+  def from_config(cls, config):
+    return cls(**config)
+    
+    
