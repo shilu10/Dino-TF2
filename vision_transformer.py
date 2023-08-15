@@ -4,6 +4,7 @@ from collections import *
 import os, math, sys
 import numpy as np 
 from ml_collections import ConfigDict
+from base_config import get_baseconfig
 
 
 class TFViTPatchEmbeddings(tf.keras.layers.Layer):
@@ -428,11 +429,10 @@ class TFVITTransformerBlock(keras.Model):
 class ViTClassifier(tf.keras.Model):
     """Vision Transformer base class."""
 
-    def __init__(self, config: ConfigDict, output_attentions, **kwargs):
+    def __init__(self, config: ConfigDict, **kwargs):
         super().__init__(**kwargs)
         self.config = config
         self.num_classes = config.num_classes
-        self.output_attentions = output_attentions
 
         # Patch embed layer
         self.patch_embed = TFViTEmbeddings(config, name="patch_embedding")
@@ -538,3 +538,51 @@ class ViTClassifier(tf.keras.Model):
           attention_scores[f"{transformer_module.name}_att"] = attention_score
 
       return attention_scores
+
+
+def vit_tiny(patch_size=16, **kwargs):
+  config = get_baseconfig(model_type="vit_tiny",
+                      image_size=224,
+                      patch_size=patch_size,
+                      num_heads=3,
+                      num_layers=12,
+                      projection_dim=192,
+                      init_values=None,
+                      dropout_rate=0.0,
+                      drop_path_rate=0.0,
+                      include_top=True)
+  
+  model = ViTClassifier(config, **kwargs)
+  return model
+
+
+def vit_small(patch_size=16, **kwargs):
+  config = get_baseconfig(model_type="vit_tiny",
+                      image_size=224,
+                      patch_size=patch_size,
+                      num_heads=6,
+                      num_layers=12,
+                      projection_dim=384,
+                      init_values=None,
+                      dropout_rate=0.0,
+                      drop_path_rate=0.0,
+                      include_top=True)
+  
+  model = ViTClassifier(config, **kwargs)
+  return model
+
+
+def vit_base(patch_size=16, **kwargs):
+  config = get_baseconfig(model_type="vit_tiny",
+                      image_size=224,
+                      patch_size=patch_size,
+                      num_heads=12,
+                      num_layers=12,
+                      projection_dim=768,
+                      init_values=None,
+                      dropout_rate=0.0,
+                      drop_path_rate=0.0,
+                      include_top=True)
+  
+  model = ViTClassifier(config, **kwargs)
+  return model
