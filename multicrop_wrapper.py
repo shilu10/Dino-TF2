@@ -5,13 +5,18 @@ from typing import *
 
 
 class MultiCropWrapper(tf.keras.Model):
-    def __init__(self, backbone, head):
-        super(MultiCropWrapper, self).__init__()
+class MultiCropWrapper(tf.keras.Model):
+    def __init__(self, 
+                 backbone: Union[tf.keras.Model, tf.keras.layers.Layer],
+                 head: Union[tf.keras.Model, tf.keras.layers.Layer], 
+                 **kwargs)-> tf.keras.Model:
+      
+        super(MultiCropWrapper, self).__init__(**kwargs)
         backbone.head, backbone.fc = tf.identity, tf.identity
         self.head = head
         self.backbone = backbone
 
-    def unique_consecutive(self, x):
+    def unique_consecutive(self, x: Union[List, Tuple]) -> np.ndarray:
         shapes = tf.constant([img.shape[1] for img in x], dtype=tf.int32)
         _, _, output = tf.unique_with_counts(
                     shapes,
@@ -23,7 +28,7 @@ class MultiCropWrapper(tf.keras.Model):
 
         return crop_inds
 
-    def call(self, x):
+    def call(self, x: tf.Tensor) -> tf.Tensor:
         if not isinstance(x, list) and not isinstance(x, tuple):
             x = [x]
 
@@ -41,3 +46,14 @@ class MultiCropWrapper(tf.keras.Model):
             start_indx = end_idx
 
         return self.head(output)
+
+    def get_config(self):
+      config = super().get_config()
+      config["backbone"] = self.backbone
+      config['head'] = self.head
+      
+      return config 
+
+    @classmethod
+    def from_config(cls, config):
+      return cls(**config)
