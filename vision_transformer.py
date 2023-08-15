@@ -569,11 +569,12 @@ class TFVITTransformerBlock(tf.keras.Model):
       return cls(**config)
 
 
+# vit model
 class ViTClassifier(tf.keras.Model):
     """Vision Transformer base class."""
 
-    def __init__(self, config: ConfigDict, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, config: ConfigDict, **kwargs) -> tf.keras.Model:
+        super(ViTClassifier, self).__init__(**kwargs)
         self.config = config
         self.num_classes = config.num_classes
 
@@ -595,7 +596,7 @@ class ViTClassifier(tf.keras.Model):
             epsilon=config.layer_norm_eps
         )
 
-    def build(self, input_shape):
+    def build(self, input_shape: tf.TensorShape):
       self.head = tf.keras.layers.Dense(
                 config.num_classes,
                 kernel_initializer="zeros",
@@ -603,7 +604,8 @@ class ViTClassifier(tf.keras.Model):
                 name="classification_head",
             ) if self.num_classes > 0 else tf.identity 
 
-    def forward_blocks(self, encoded_patches):
+    def forward_blocks(self, 
+                       encoded_patches: tf.Tensor) -> tf.Tensor:
       # Initialize a dictionary to store attention scores from each transformer_block.
       attention_scores = dict()
 
@@ -618,7 +620,9 @@ class ViTClassifier(tf.keras.Model):
 
       return encoded_patches
 
-    def call(self, inputs, training=None):
+    def call(self, 
+             inputs: tf.Tensor, 
+             training: bool = None) -> tf.Tensor:
         n = tf.shape(inputs)[0]
 
         # Create patches and project the patches.
@@ -638,7 +642,9 @@ class ViTClassifier(tf.keras.Model):
 
         return output
 
-    def get_last_selfattention(self, inputs, training=False):
+    def get_last_selfattention(self, 
+                               inputs: tf.Tensor, 
+                               training: bool = False) -> tf.Tensor:
       n = tf.shape(inputs)[0]
 
       # Create patches and project the patches.
@@ -659,7 +665,9 @@ class ViTClassifier(tf.keras.Model):
           return attention_score
         
 
-    def get_intermediate_layer(self, inputs, training=False):
+    def get_intermediate_layer(self, 
+                               inputs: tf.Tensor, 
+                               training: bool = False) -> Dict:
       n = tf.shape(inputs)[0]
 
       # Create patches and project the patches.
@@ -681,6 +689,7 @@ class ViTClassifier(tf.keras.Model):
           attention_scores[f"{transformer_module.name}_att"] = attention_score
 
       return attention_scores
+
 
 
 def vit_tiny(patch_size=16, **kwargs):
