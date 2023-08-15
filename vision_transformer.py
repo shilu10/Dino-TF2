@@ -464,8 +464,7 @@ class ViTClassifier(tf.keras.Model):
       # Initialize a dictionary to store attention scores from each transformer_block.
       attention_scores = dict()
 
-      # Iterate over the number of layers and stack up blocks of
-      # Transformer.
+      # Iterate over the number of layers and stack up blocks of Transformer.
       for transformer_module in self.transformer_blocks:
         # Add a Transformer block.
         encoded_patches, attention_score = transformer_module(
@@ -482,19 +481,60 @@ class ViTClassifier(tf.keras.Model):
         # Create patches and project the patches.
         projected_patches = self.patch_embed(inputs)
 
+        # dropout for projected patches
         encoded_patches = self.dropout(projected_patches)
 
+        # passing the encoded_patches into transformer blocks
         encoded_patches = self.forward_blocks(encoded_patches)
 
         # Final layer normalization.
         representation = self.layer_norm(encoded_patches)
         
+        # accessing the cls_token feature
         output = representation[:, 0]
 
         return output
 
     def get_last_selfattention(self, inputs, training=False):
-      pass 
+      n = tf.shape(inputs)[0]
+
+      # Create patches and project the patches.
+      projected_patches = self.patch_embed(inputs)
+
+      # dropout for projected patches
+      encoded_patches = self.dropout(projected_patches)
+
+      # Iterate over the number of layers and stack up blocks of Transformer.
+      for indx, transformer_module in enumerate(self.transformer_blocks):
+        # Add a Transformer block.
+        encoded_patches, attention_score = transformer_module(
+                encoded_patches,
+                output_attentions = True
+            )
+        
+        if indx == len(self.transformer_blocks)-1:
+          return attention_score
+        
 
     def get_intermediate_layer(self, inputs, training=False):
-      pass 
+      n = tf.shape(inputs)[0]
+
+      # Create patches and project the patches.
+      projected_patches = self.patch_embed(inputs)
+
+      # dropout for projected patches
+      encoded_patches = self.dropout(projected_patches)
+
+      attention_scores = dict()
+      # Iterate over the number of layers and stack up blocks of Transformer.
+      for indx, transformer_module in enumerate(self.transformer_blocks):
+        # Add a Transformer block.
+        encoded_patches, attention_score = transformer_module(
+                encoded_patches,
+                output_attentions = True
+            )
+        
+        if indx < len(self.transformer_blocks)-1:
+          attention_scores[f"{transformer_module.name}_att"] = attention_score
+
+      return attention_scores
