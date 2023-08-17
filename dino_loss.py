@@ -30,9 +30,9 @@ class DinoLoss(tf.keras.losses.Loss):
       ))
     self.center = tf.zeros_like(out_dim, dtype=tf.float32)
 
-  def __call__(self, 
-               student_output: tf.Tensor, 
-               teacher_output: tf.Tensor, 
+  def __call__(self,
+               student_output: tf.Tensor,
+               teacher_output: tf.Tensor,
                epoch: int) -> tf.Tensor:
     """
       Cross-entropy between softmax outputs of the teacher and student networks.
@@ -58,14 +58,15 @@ class DinoLoss(tf.keras.losses.Loss):
                     -q * tf.nn.log_softmax(student_out[v], axis=-1), axis=-1
                 )
 
-        total_loss += tf.math.reduce_mean(loss)
+        # total_loss += tf.math.reduce_mean(loss) # use for one-gpu training
+        total_loss += loss # for multi-gpu
         n_loss_terms += 1
 
     total_loss /= n_loss_terms
     self.update_center(teacher_output)
     return total_loss
 
-  def update_center(self, 
+  def update_center(self,
                     teacher_output: tf.Tensor)-> None:
     """
       Update center used for teacher output.
@@ -76,21 +77,23 @@ class DinoLoss(tf.keras.losses.Loss):
             self.center * self.center_momentum
             + batch_center * (1 - self.center_momentum)
         )
-    
+
   def get_config(self):
     config = super().get_config()
     config.update(
         {
             'student_temp': self.student_temp,
-            'center_momentum': self.center_momentum,
+           # 'center_momentum': self.center_momentum,
             'ncrops': self.ncrops
         }
       )
-    
-    return config 
+
+    return config
 
   @classmethod
   def from_config(cls, config):
     return cls(**config)
+
+
     
     
