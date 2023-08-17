@@ -1,9 +1,9 @@
-def train_step(train_batch, teacher, student, epoch, dino_loss, optimizer):
+def train_step(train_batch, teacher, student, epoch, dino_loss, optimizer, compute_loss):
 
   with tf.GradientTape() as tape:
     teacher_output = teacher(train_batch[:2])  # only the 2 global views pass through the teacher
     student_output = student(train_batch)
-    loss = dino_loss(student_output, teacher_output, epoch)
+    loss = compute_loss(student_output, teacher_output, epoch)
 
   params = student.trainable_variables
   grads = tape.gradient(loss, params)
@@ -13,15 +13,15 @@ def train_step(train_batch, teacher, student, epoch, dino_loss, optimizer):
 
 
 @tf.function
-def distributed_train_step(train_batch, teacher, student, epoch, dino_loss, optimizer):
+def distributed_train_step(train_batch, teacher, student, epoch, dino_loss, optimizer, compute_loss):
   per_replica_losses = strategy.run(train_step, 
-                                    args=(train_batch, teacher, student, epoch, dino_loss, optimizer))
+                                    args=(train_batch, teacher, student, epoch, dino_loss, optimizer, compute_loss))
 
   return strategy.reduce(tf.distribute.ReduceOp.SUM, 
                          per_replica_losses, 
                          axis=None) 
 
-  
+
 def train_dino(
     arch: str = "vit_base",
     patch_size: int = 16,
@@ -88,14 +88,32 @@ def train_dino(
 
   # distributed loss 
   with strategy.scope():
+    # Set reduction to `NONE` so you can do the reduction afterwards and divide by
+    # global batch size.
     dino_loss = DinoLoss(
-        out_dim,
-        local_crops_number+2,
-        warmup_teacher_temp,
-        teacher_temp,
-        warmup_teacher_temp_epochs,
-        epochs,
-    )
+                out_dim,
+                local_crops_number+2,
+                warmup_teacher_temp,
+                teacher_temp,
+                warmup_teacher_temp_epochs,
+                epochs,
+            )
+    
+    def compute_loss(labels, 
+                     predictions, 
+                     epoch, 
+                     model_losses):
+      
+      per_example_loss = dino_loss(teacher_out=labels, 
+                                   student_out=predictions, 
+                                   epoch=epoch)
+      
+      loss = tf.nn.compute_average_loss(per_example_loss,
+                                        global_batch_size=batch_size)
+      if model_losses:
+        loss += tf.nn.scale_regularization_loss(tf.add_n(model_losses))
+      return loss
+    
 
   with strategy.scope():
     # ============ init schedulers ... ============
@@ -144,7 +162,8 @@ def train_dino(
               student = student, 
               epoch = epoch,
               dino_loss = dino_loss,
-              optimizer = optimizer
+              optimizer = optimizer,
+              compute_loss = compute_loss
       )
 
       epoch_loss += loss 
