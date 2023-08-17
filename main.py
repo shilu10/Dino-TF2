@@ -1,3 +1,27 @@
+def train_step(train_batch, teacher, student, epoch, dino_loss, optimizer):
+
+  with tf.GradientTape() as tape:
+    teacher_output = teacher(train_batch[:2])  # only the 2 global views pass through the teacher
+    student_output = student(train_batch)
+    loss = dino_loss(student_output, teacher_output, epoch)
+
+  params = student.trainable_variables
+  grads = tape.gradient(loss, params)
+  optimizer.apply_gradients(zip(grads, params))
+
+  return loss 
+
+
+@tf.function
+def distributed_train_step(train_batch, teacher, student, epoch, dino_loss, optimizer):
+  per_replica_losses = strategy.run(train_step, 
+                                    args=(train_batch, teacher, student, epoch, dino_loss, optimizer))
+
+  return strategy.reduce(tf.distribute.ReduceOp.SUM, 
+                         per_replica_losses, 
+                         axis=None) 
+
+  
 def train_dino(
     arch: str = "vit_base",
     patch_size: int = 16,
@@ -19,64 +43,111 @@ def train_dino(
     warmup_teacher_temp: float = 0.04,
     teacher_temp: float = 0.04,
     warmup_teacher_temp_epochs: int = 0,
-    trainloader=None
+    data_path: str = None
   ):
 
-  student = ViTClassifier(config, False)
-  teacher = ViTClassifier(config, False)
+  # distributed strategy
+  strategy = tf.distribute.MirroredStrategy()
+  print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
 
-  embed_dim = student.config.projection_dim
 
-  student = MultiCropWrapper(student, DinoHead(embed_dim, out_dim, use_bn_in_head, norm_last_layer))
-  teacher = MultiCropWrapper(teacher, DinoHead(embed_dim, out_dim, use_bn_in_head))
+  # data_loader
+  data_builder = tfds.folder_dataset.ImageFolder(data_path)
+  dataset = data_builder.as_dataset(split='train',
+                               shuffle_files=True,
+                               batch_size=batch_size)
 
-  dino_loss = DinoLoss(
-      out_dim,
-      local_crops_number+2,
-      warmup_teacher_temp,
-      teacher_temp,
-      warmup_teacher_temp_epochs,
-      epochs,
-  )
+  multires_dataset = get_multires_dataset(dataset=dataset,
+                          size_crops=[224, 96], # default values
+                          num_crops=[2, local_crops_number],
+                          min_scale = [global_crops_scale[0], local_crops_scale[0]],
+                          max_scale = [global_crops_scale[1], local_crops_scale[1]],
+                          batch_size=batch_size)
 
-  # ============ init schedulers ... ============
-  lr_schedule = cosine_scheduler(
-        lr * batch_size / 256.,  # linear scaling rule
-        min_lr,
-        epochs, len(trainloader),
-        warmup_epochs=warmup_epochs,
+  dataloader = tf.data.Dataset.zip(multires_dataset)
+  # distributed trainloader
+  dist_dataloader = strategy.experimental_distribute_dataset(dataloader)
+
+  # distributed tf model
+  with strategy.scope():
+    student = ViTClassifier(config, False)
+    teacher = ViTClassifier(config, False)
+
+    embed_dim = student.config.projection_dim
+
+    student = MultiCropWrapper(backbone = student,
+                              head = DinoHead(embed_dim,
+                                              out_dim,
+                                              use_bn_in_head,
+                                              norm_last_layer))
+
+    teacher = MultiCropWrapper(backbone = teacher,
+                              head = DinoHead(embed_dim,
+                                              out_dim,
+                                              use_bn_in_head))
+
+  # distributed loss 
+  with strategy.scope():
+    dino_loss = DinoLoss(
+        out_dim,
+        local_crops_number+2,
+        warmup_teacher_temp,
+        teacher_temp,
+        warmup_teacher_temp_epochs,
+        epochs,
     )
-  wd_schedule = cosine_scheduler(
-        weight_decay,
-        weight_decay_end,
-        epochs, len(trainloader),
-    )
+
+  with strategy.scope():
+    # ============ init schedulers ... ============
+    lr_schedule = cosine_scheduler(
+          lr * batch_size / 256.,  # linear scaling rule
+          min_lr,
+          epochs, len(trainloader),
+          warmup_epochs=warmup_epochs,
+      )
+
+    wd_schedule = cosine_scheduler(
+          weight_decay,
+          weight_decay_end,
+          epochs, len(trainloader),
+      )
+
     # momentum parameter is increased to 1. during training with a cosine schedule
-  momentum_schedule = cosine_scheduler(momentum_teacher, 1,
-                                               epochs, len(trainloader))
+    momentum_schedule = cosine_scheduler(momentum_teacher, 1,
+                                        epochs, len(trainloader))
 
-  opt = tf.keras.optimizers.SGD(learning_rate=lr)
+  # distributed optimizer
+  with strategy.scope():
+    if optimizer == "adamw":
+      optimizer = tf.keras.optimizers.AdamW(learning_rate=lr, weight_decay=weight_decay)  # to use with ViTs
+
+    elif optimizer == "sgd":
+      optimizer = tf.keras.optimizers.SGD(learning_rate=0,
+                                          momentum=0.9,
+                                          weight_decay=weight_decay)  # lr is set by scheduler
 
   for epoch in range(epochs):
+    indx = len(trainloader) * epoch + indx
     epoch_loss = 0
     print(f'epoch: {epoch}')
+
     for indx, train_batch in enumerate(tqdm.tqdm(trainloader)):
       indx = len(trainloader) * epoch + indx  # global training iteration
 
       # update lr and weight decay values
-      opt.learning_rate = lr_schedule[indx]
-      opt.weight_decay = wd_schedule[indx]
+      optimizer.learning_rate = lr_schedule[indx]
+      optimizer.weight_decay = wd_schedule[indx]
 
-      with tf.GradientTape() as tape:
-        teacher_output = teacher(train_batch[:2])  # only the 2 global views pass through the teacher
-        student_output = student(train_batch)
-        loss = dino_loss(student_output, teacher_output, epoch)
+      loss = distributed_train_step(
+              train_batch = train_batch,
+              teacher = teacher,
+              student = student, 
+              epoch = epoch,
+              dino_loss = dino_loss,
+              optimizer = optimizer
+      )
 
-      params = student.trainable_variables
-      grads = tape.gradient(loss, params)
-      opt.apply_gradients(zip(grads, params))
-
-      epoch_loss += loss
+      epoch_loss += loss 
 
       # update teacher model
       m = momentum_schedule[indx]  # momentum parameter
