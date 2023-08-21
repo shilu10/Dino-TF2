@@ -51,9 +51,9 @@ class TFViTPatchEmbeddings(tf.keras.layers.Layer):
                     name="projection"
                 )
 
-    def call(self, 
-             x: tf.Tensor, 
-             interpolate_pos_encoding: bool = True, 
+    def call(self,
+             x: tf.Tensor,
+             interpolate_pos_encoding: bool = True,
              training: bool = False) -> tf.Tensor:
 
         #shape = tf.shape(x)
@@ -80,18 +80,18 @@ class TFViTPatchEmbeddings(tf.keras.layers.Layer):
           {
               'num_patches': self.num_patches,
               'image_size': self.image_size,
-              'n_channels': self.n_channels, 
-              'projection_dim': self.projection_dim, 
+              'n_channels': self.n_channels,
+              'projection_dim': self.projection_dim,
               'patch_size': self.patch_size
           }
         )
-      
-      return config 
+
+      return config
 
     @classmethod
     def from_config(cls, config):
       return cls(**config)
-      
+
 
 # position embed
 @keras.saving.register_keras_serializable('my_package')
@@ -171,9 +171,9 @@ class TFViTEmbeddings(tf.keras.layers.Layer):
         patch_pos_embed = tf.reshape(tensor=patch_pos_embed, shape=(1, -1, dim))
         return tf.concat(values=(class_pos_embed, patch_pos_embed), axis=1)
 
-    def call(self, 
-             x: tf.Tensor, 
-             interpolate_pos_encoding: bool = True, 
+    def call(self,
+             x: tf.Tensor,
+             interpolate_pos_encoding: bool = True,
              training: bool = False) -> tf.Tensor:
         #shape = tf.shape(x)
         #batch_size, height, width, n_channels = shape[0], shape[1], shape[2], shape[3]
@@ -210,18 +210,18 @@ class TFViTEmbeddings(tf.keras.layers.Layer):
 
     def get_config(self):
       config = super().get_config()
-      config['dropout_rate'] = self.dropout_rate 
+      #config['dropout_rate'] = self.dropout_rate
 
-      return config 
+      return config
 
     @classmethod
     def from_config(cls, config):
       return cls(**config)
 
 
-def mlp(dropout_rate: float = 0.0, 
+def mlp(dropout_rate: float = 0.0,
         hidden_units: Union[List, Tuple] = [192, 768]):
-  
+
     mlp_block = keras.Sequential(
           [
               tf.keras.layers.Dense(hidden_units[0],
@@ -246,7 +246,7 @@ class LayerScale(tf.keras.layers.Layer):
        #     config.init_values * tf.ones((config.projection_dim,)),
        #     name="layer_scale",
        #  )
-    
+
     def build(self, input_shape):
       self.gamma = self.add_weight(
             config.init_values * tf.ones((config.projection_dim,)),
@@ -260,7 +260,7 @@ class LayerScale(tf.keras.layers.Layer):
       config = super().get_conig()
       config['projection_dim'] = self.projection_dim
 
-      return config 
+      return config
 
     @classmethod
     def from_config(cls, config):
@@ -270,15 +270,15 @@ class LayerScale(tf.keras.layers.Layer):
 # drop_path
 @keras.saving.register_keras_serializable('my_package')
 class StochasticDepth(tf.keras.layers.Layer):
-    def __init__(self, 
-                 drop_prop: float = 0.0, 
+    def __init__(self,
+                 drop_prop: float = 0.0,
                  **kwargs)-> tf.keras.layers.Layer:
-      
+
         super(StochasticDepth, self).__init__(**kwargs)
         self.drop_prob = drop_prop
 
-    def call(self, 
-             x: tf.Tensor, 
+    def call(self,
+             x: tf.Tensor,
              training: bool = None) -> tf.Tensor:
         if training:
             keep_prob = 1 - self.drop_prob
@@ -290,9 +290,9 @@ class StochasticDepth(tf.keras.layers.Layer):
 
     def get_config(self):
       config = super().get_config()
-      config['drop_prob'] = self.drop_prob 
+      #config['drop_prob'] = self.drop_prob
 
-      return config 
+      return config
 
     @classmethod
     def from_config(cls, config):
@@ -316,18 +316,18 @@ class TFViTSelfAttention(tf.keras.layers.Layer):
         self.all_head_size = self.num_attention_heads * self.attention_head_size
         self.sqrt_att_head_size = math.sqrt(self.attention_head_size)
 
-        self.query = keras.layers.Dense(units=self.all_head_size, 
-                                        name="query", 
+        self.query = keras.layers.Dense(units=self.all_head_size,
+                                        name="query",
                                         use_bias=True)
-        
-        self.key = keras.layers.Dense(units=self.all_head_size, 
-                                      name="key", 
+
+        self.key = keras.layers.Dense(units=self.all_head_size,
+                                      name="key",
                                       use_bias=True)
-        
-        self.value = keras.layers.Dense(units=self.all_head_size, 
-                                        name="value", 
+
+        self.value = keras.layers.Dense(units=self.all_head_size,
+                                        name="value",
                                         use_bias=True)
-        
+
         self.dropout = keras.layers.Dropout(rate=config.dropout_rate)
 
     def transpose_for_scores(
@@ -400,14 +400,14 @@ class TFViTSelfAttention(tf.keras.layers.Layer):
       config = super().get_config()
       config['num_attention_heads'] = self.num_attention_heads
       config['attention_head_size'] = self.attention_head_size
-      config['all_head_size'] = self.all_head_size
-      config['sqrt_att_head_size'] = self.sqrt_att_head_size
+      #config['all_head_size'] = self.all_head_size
+      #config['sqrt_att_head_size'] = self.sqrt_att_head_size
 
-      return config 
+      return config
 
     @classmethod
     def from_config(cls, config):
-      return cls(**config) 
+      return cls(**config)
 
 
 # self-attention output(projection dense layer)
@@ -489,7 +489,7 @@ class TFViTAttention(tf.keras.layers.Layer):
     def get_config(self):
       config = super().get_config()
 
-      return config 
+      return config
 
     @classmethod
     def from_config(cls, config):
@@ -563,7 +563,7 @@ class TFVITTransformerBlock(tf.keras.Model):
 
     def get_config(self):
       config = super().get_config()
-      config['drop_prob'] = self.drop_prob
+      #config['drop_prob'] = self.drop_prob
       config['layer_norm_eps'] = self.layer_norm_eps
       config['mlp_units'] = self.mlp_units
 
@@ -607,9 +607,9 @@ class ViTClassifier(tf.keras.Model):
                 kernel_initializer="zeros",
                 dtype="float32",
                 name="classification_head",
-            ) if self.num_classes > 0 else tf.identity 
+            ) if self.num_classes > 0 else tf.identity
 
-    def forward_blocks(self, 
+    def forward_blocks(self,
                        encoded_patches: tf.Tensor) -> tf.Tensor:
       # Initialize a dictionary to store attention scores from each transformer_block.
       attention_scores = dict()
@@ -625,8 +625,8 @@ class ViTClassifier(tf.keras.Model):
 
       return encoded_patches
 
-    def call(self, 
-             inputs: tf.Tensor, 
+    def call(self,
+             inputs: tf.Tensor,
              training: bool = None) -> tf.Tensor:
         n = tf.shape(inputs)[0]
 
@@ -641,14 +641,14 @@ class ViTClassifier(tf.keras.Model):
 
         # Final layer normalization.
         representation = self.layer_norm(encoded_patches)
-        
+
         # accessing the cls_token feature
         output = representation[:, 0]
 
         return output
 
-    def get_last_selfattention(self, 
-                               inputs: tf.Tensor, 
+    def get_last_selfattention(self,
+                               inputs: tf.Tensor,
                                training: bool = False) -> tf.Tensor:
       n = tf.shape(inputs)[0]
 
@@ -665,15 +665,16 @@ class ViTClassifier(tf.keras.Model):
                 encoded_patches,
                 output_attentions = True
             )
-        
+
         if indx == len(self.transformer_blocks)-1:
           return attention_score
-        
 
-    def get_intermediate_layer(self, 
-                               inputs: tf.Tensor, 
+
+    def get_intermediate_layer(self,
+                               inputs: tf.Tensor,
+                               n: int = 1,
                                training: bool = False) -> Dict:
-      n = tf.shape(inputs)[0]
+      num_batch = tf.shape(inputs)[0]
 
       # Create patches and project the patches.
       projected_patches = self.patch_embed(inputs)
@@ -681,7 +682,7 @@ class ViTClassifier(tf.keras.Model):
       # dropout for projected patches
       encoded_patches = self.dropout(projected_patches)
 
-      attention_scores = dict()
+      output = []
       # Iterate over the number of layers and stack up blocks of Transformer.
       for indx, transformer_module in enumerate(self.transformer_blocks):
         # Add a Transformer block.
@@ -689,12 +690,21 @@ class ViTClassifier(tf.keras.Model):
                 encoded_patches,
                 output_attentions = True
             )
-        
-        if indx < len(self.transformer_blocks)-1:
-          attention_scores[f"{transformer_module.name}_att"] = attention_score
 
-      return attention_scores
+        if len(self.transformer_blocks) - indx <= n:
+          output.append(self.layer_norm(encoded_patches))
 
+      return output
+
+    def get_config(self):
+      config = super().get_config()
+      config['num_classes'] = self.num_classes
+
+      return config
+
+    @classmethod
+    def from_config(cls, config):
+      return cls(**config)
 
 
 def vit_tiny(patch_size=16, return_config=False, **kwargs):
