@@ -2,12 +2,11 @@ from tensorfow import keras
 import tensorfow as tf 
 import numpy as np 
 import timm, os, sys 
-
-
 import yaml
+from .vision_transformer import ViTClassifier, vit_tiny, vit_small, vit_base
 
 
-def port(model_type, model_savepath, tf_model):
+def port(model_type, model_savepath):
 
     print("Instantiating PyTorch model...")
     pt_model = timm.create_model(
@@ -19,25 +18,19 @@ def port(model_type, model_savepath, tf_model):
     pt_model.eval()
 
     print("Instantiating TF model...")
-    #model_cls = ViTClassifier
+    if "tiny" in model_type:
+        tf_model = vit_tiny()
+    
+    elif "base" in model_type:
+        tf_model = vit_base()
 
-    #config_file_path = f"configs/{model_type.replace('.', '_')}.yaml"
-    #with open(config_file_path, "r") as f:
-     #   data = yaml.safe_load(f)
+    elif "small" in model_type:
+        tf_model = vit_small()
+    
+    else:
+        raise NotImplementedError('given model_type is not implemented')
 
-    #config = get_baseconfig(
-     #   model_type = model_type,
-      #  image_size = data.get("image_size"),
-       # patch_size = data.get("patch_size"),
-       # num_heads = data.get("num_heads"),
-       # num_layers = data.get("num_layers"),
-        #projection_dim = data.get("projection_dim"),
-    #)
 
-    #tf_model = model_cls(config)
-
-    #print(tf_model.positional_embedding, tf_model.cls_token)
-    #image_dim = data.get("image_size")
     image_dim = 224
     dummy_inputs = tf.ones((2, image_dim, image_dim, 3))
     _ = tf_model(dummy_inputs)[0]
