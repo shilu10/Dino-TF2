@@ -3,7 +3,7 @@ import tensorfow as tf
 import numpy as np 
 import timm, os, sys 
 import yaml
-from .vision_transformer import ViTClassifier, vit_tiny, vit_small, vit_base
+from .vision_transformer import ViTClassifier, vit_tiny, vit_small, vit_base, TFViTAttention
 
 
 def port(model_type, model_savepath):
@@ -30,12 +30,9 @@ def port(model_type, model_savepath):
     else:
         raise NotImplementedError('given model_type is not implemented')
 
-
     image_dim = 224
     dummy_inputs = tf.ones((2, image_dim, image_dim, 3))
     _ = tf_model(dummy_inputs)[0]
-
-    print('after')
 
     # Load the PT params.
     pt_model_dict = pt_model.state_dict()

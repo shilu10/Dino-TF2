@@ -5,7 +5,6 @@ from typing import *
 
 
 class MultiCropWrapper(tf.keras.Model):
-class MultiCropWrapper(tf.keras.Model):
     def __init__(self, 
                  backbone: Union[tf.keras.Model, tf.keras.layers.Layer],
                  head: Union[tf.keras.Model, tf.keras.layers.Layer], 
