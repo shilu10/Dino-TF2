@@ -2,10 +2,17 @@ import tensorflow as tf
 from tensorflow import keras 
 import numpy as np 
 import tqdm, datetime, os, sys 
+from typing import * 
 
 
-
-def train_step(train_batch, teacher, student, epoch, dino_loss, optimizer, compute_loss):
+def train_step(train_batch: tf.Tensor, 
+               teacher: tf.keras.Model, 
+               student: tf.keras.Model, 
+               epoch: int, 
+               dino_loss: tf.keras.losses.Loss, 
+               optimizer: tf.keras.optimizers.Optimizer, 
+               compute_loss: Callable):
+    
     with tf.GradientTape() as tape:
         teacher_output = teacher(train_batch[:2])  # only the 2 global views pass through the teacher
         student_output = student(train_batch)
@@ -18,7 +25,15 @@ def train_step(train_batch, teacher, student, epoch, dino_loss, optimizer, compu
 
 
 @tf.function
-def distributed_train_step(train_batch, teacher, student, epoch, dino_loss, optimizer, compute_loss, strategy):
+def distributed_train_step(train_batch: tf.Tensor, 
+                           teacher: tf.keras.Model, 
+                           student: tf.keras.Model, 
+                           epoch: int, 
+                           dino_loss: tf.keras.losses.Loss, 
+                           optimizer: tf.keras.optimizers.Optimizer, 
+                           compute_loss: Callable,
+                           strategy):
+    
     per_replica_losses = strategy.run(train_step,
                                     args=(train_batch, teacher, student, epoch, dino_loss, optimizer, compute_loss, ))
 
