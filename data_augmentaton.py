@@ -1,10 +1,8 @@
+# Reference: https://github.com/google-research/simclr/blob/master/data_util.py
 import tensorflow as tf
 import random
 import numpy as np 
 
-AUTO = tf.data.experimental.AUTOTUNE
-
-# Reference: https://github.com/google-research/simclr/blob/master/data_util.py
 
 class DataAugmentationDINO:
     def __init__(self):
