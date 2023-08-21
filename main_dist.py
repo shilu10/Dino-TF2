@@ -291,7 +291,7 @@ def train_dino(args):
         epoch_loss = 0
         print(f'epoch: {epoch}')
 
-        for indx, train_batch in enumerate(tqdm.tqdm(dist_dataloader), total=len(dataloader)):
+        for indx, train_batch in enumerate(tqdm.tqdm(dist_dataloader, total=len(dataloader))):
             indx = len(dataloader) * epoch + indx  # global training iteration
 
             # update lr and weight decay values
