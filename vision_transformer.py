@@ -5,6 +5,8 @@ import os, math, sys
 import numpy as np 
 from ml_collections import ConfigDict
 from .base_config import get_baseconfig
+from typing import * 
+
 
 # deleting the custom object
 tf.keras.utils.get_custom_objects().clear()
