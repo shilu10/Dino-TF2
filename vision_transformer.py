@@ -4,9 +4,9 @@ from collections import *
 import os, math, sys, collections
 import numpy as np 
 from ml_collections import ConfigDict
-from .base_config import get_baseconfig
+from base_config import get_baseconfig
 from typing import * 
-from .utils import * 
+from utils import * 
 
 
 # deleting the custom object
