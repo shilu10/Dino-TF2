@@ -4,11 +4,17 @@ import random
 import numpy as np 
 
 
+import tensorflow as tf
+import random
+
+
+# Reference: https://github.com/google-research/simclr/blob/master/data_util.py
+
 class DataAugmentationDINO:
     def __init__(self):
         self.mean = [0.485, 0.456, 0.406],
-        self.std_dev = [0.229, 0.224, 0.225] 
-    
+        self.std_dev = [0.229, 0.224, 0.225]
+
     @tf.function
     def gaussian_blur(self, image, kernel_size=23, padding='SAME'):
         sigma = tf.random.uniform((1,))* 1.9 + 0.1
@@ -48,7 +54,7 @@ class DataAugmentationDINO:
     @tf.function
     def color_drop(self, x):
         x = tf.image.rgb_to_grayscale(x)
-        x = tf.tile(x, [1, 1, 3])
+        x = tf.tile(x, [1, 1, 1, 3])
         return x
 
     @tf.function
@@ -88,17 +94,17 @@ class DataAugmentationDINO:
         return image
 
     @tf.function
-    def random_resize_crop(self, image, min_scale, max_scale, crop_size):
+    def random_resize_crop(self, image, min_scale, max_scale, crop_size, batch_size):
         # Conditional resizing
         if crop_size == 224:
             image_shape = 260
-            image = tf.image.resize(image, 
-                                    size=(image_shape, image_shape), 
+            image = tf.image.resize(image,
+                                    size=(image_shape, image_shape),
                                     method=tf.image.ResizeMethod.BICUBIC)
         else:
             image_shape = 160
-            image = tf.image.resize(image, 
-                                    size=(image_shape, image_shape), 
+            image = tf.image.resize(image,
+                                    size=(image_shape, image_shape),
                                     method=tf.image.ResizeMethod.BICUBIC)
 
         # Get the crop size for given min and max scale
@@ -106,7 +112,7 @@ class DataAugmentationDINO:
             maxval=max_scale*image_shape, dtype=tf.float32)
         size = tf.cast(size, tf.int32)[0]
         # Get the crop from the image
-        crop = tf.image.random_crop(image, (size,size,3))
+        crop = tf.image.random_crop(image, (batch_size, size, size, 3))
         crop_resize = tf.image.resize(crop, (crop_size, crop_size))
 
         return crop_resize
@@ -133,31 +139,47 @@ class DataAugmentationDINO:
         return image
 
     @tf.function
-    def augment(self, 
-                image, 
-                min_scale, 
-                max_scale, 
-                crop_size, 
-                mode='local', 
-                indx=0
+    def read_image(self, image_path):
+        raw = tf.io.read_file(image_path)
+        image = tf.io.decode_image(
+                contents=raw,
+                channels=3,
+                dtype=tf.dtypes.float32,
+            )
+
+        return image
+
+    @tf.function
+    def augment(self,
+                data,
+                min_scale,
+                max_scale,
+                crop_size,
+                mode='local',
+                indx=0,
+                batch_size=1,
             ):
-        
+
         # Retrieve the image features
         # Scale the pixel values
+        #image = self.read_image(image_path)
+        # we got image, label as dictionary
+        image, label = data.get('image'), data.get('label')
         image = self.scale_image(image)
         # Random resized crops
-        image = self.random_resize_crop(image, 
-                                        min_scale, 
-                                        max_scale, 
-                                        crop_size)
+        image = self.random_resize_crop(image,
+                                        min_scale,
+                                        max_scale,
+                                        crop_size,
+                                        batch_size)
 
         if mode == "local":
             # Color distortions & Gaussian blur
             image = self._local_augment(image)
 
         else:
-            image = self._global_augment(image, 
-                                    use_solarization=False if indx==0 else True, 
+            image = self._global_augment(image,
+                                    use_solarization=False if indx==0 else True,
                                     gb_prob=1.0 if indx==0 else 0.1)
 
         image = self._standardize_normalize(image)
@@ -166,12 +188,13 @@ class DataAugmentationDINO:
 
 
 def get_multires_dataset(dataset,
-	size_crops,
-	num_crops,
-	min_scale,
-	max_scale,
-    modes=["global", "local"],
-	options=None):
+                        size_crops,
+                        num_crops,
+                        min_scale,
+                        max_scale,
+                        batch_size=64,
+                        modes=["global", "local"],
+                        options=None):
 
     loaders = tuple()
     augmentor = DataAugmentationDINO()
@@ -179,15 +202,21 @@ def get_multires_dataset(dataset,
     for i, num_crop in enumerate(num_crops):
         for _ in range(num_crop):
             loader = (
-					dataset
-					.shuffle(1024)
-					.map(lambda x, y: augmentor.augment(x, min_scale[i],
-						max_scale[i], size_crops[i], mode=modes[i], indx=0), num_parallel_calls=AUTO)
-				)
-                        
+                dataset
+                .shuffle(100)
+                .map(lambda data: augmentor.augment(data,
+                                                 min_scale[i],
+                                                 max_scale[i],
+                                                 size_crops[i],
+                                                 mode=modes[i],
+                                                 indx=0,
+                                                 batch_size=batch_size),
+                                                 num_parallel_calls=tf.data.AUTOTUNE)
+              )
+
             if options!=None:
                 loader = loader.with_options(options)
-                
+
             loaders += (loader, )
 
     return loaders
