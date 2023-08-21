@@ -113,7 +113,7 @@ def train_step(train_batch: tf.Tensor,
                student: tf.keras.Model, 
                epoch: int, 
                dino_loss: tf.keras.losses.Loss, 
-               optimizer: tf.keras.optimizer.Optimizer):
+               optimizer: tf.keras.optimizers.Optimizer):
     
     with tf.GradientTape() as tape:
         teacher_output = teacher(train_batch[:2])  # only the 2 global views pass through the teacher
