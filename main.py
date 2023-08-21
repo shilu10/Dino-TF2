@@ -4,12 +4,12 @@ import numpy as np
 import tqdm, datetime, os, sys 
 from typing import * 
 import argparse
-from .vision_transformer import * 
-from .data_augmentation import get_multires_dataset
-from .dino_loss import DinoLoss
-from .dino_head import DinoHead
-from .multicrop_wrapper import MultiCropWrapper
-from .utils import * 
+from vision_transformer import * 
+from data_augmentation import get_multires_dataset
+from dino_loss import DinoLoss
+from dino_head import DinoHead
+from multicrop_wrapper import MultiCropWrapper
+from utils import * 
 
 
 def get_args_parser():
