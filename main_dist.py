@@ -4,7 +4,7 @@ import numpy as np
 import tqdm, datetime, os, sys 
 from typing import * 
 import argparse
-from vision_transformer import * 
+from vision_transformer import 
 from data_augmentaton import get_multires_dataset
 from dino_loss import DinoLoss
 from dino_head import DinoHead
@@ -261,10 +261,10 @@ def train_dino(args):
 
     # distributed optimizer
     with strategy.scope():
-        if optimizer == "adamw":
+        if args.optimizer == "adamw":
             optimizer = tf.keras.optimizers.AdamW(learning_rate=args.lr, weight_decay=args.weight_decay)  # to use with ViTs
 
-        elif optimizer == "sgd":
+        elif args.optimizer == "sgd":
             optimizer = tf.keras.optimizers.SGD(learning_rate=0,
                                           momentum=0.9,
                                           weight_decay=args.weight_decay)  # lr is set by scheduler
