@@ -709,7 +709,7 @@ def vit_tiny(patch_size=16, **kwargs):
 
 
 def vit_small(patch_size=16, **kwargs):
-  config = get_baseconfig(model_type="vit_tiny",
+  config = get_baseconfig(model_type="vit_small",
                       image_size=224,
                       patch_size=patch_size,
                       num_heads=6,
@@ -725,7 +725,7 @@ def vit_small(patch_size=16, **kwargs):
 
 
 def vit_base(patch_size=16, **kwargs):
-  config = get_baseconfig(model_type="vit_tiny",
+  config = get_baseconfig(model_type="vit_base",
                       image_size=224,
                       patch_size=patch_size,
                       num_heads=12,
