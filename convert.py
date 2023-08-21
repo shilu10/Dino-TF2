@@ -21,13 +21,13 @@ def port(model_type, model_savepath):
 
     print("Instantiating TF model...")
     if "tiny" in model_type:
-        tf_model = vit_tiny()
+        tf_model, config = vit_tiny(return_config=True)
     
     elif "base" in model_type:
-        tf_model = vit_base()
+        tf_model, config = vit_base(return_config=True)
 
     elif "small" in model_type:
-        tf_model = vit_small()
+        tf_model, config = vit_small(return_config=True)
     
     else:
         raise NotImplementedError('given model_type is not implemented')
