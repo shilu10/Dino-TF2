@@ -121,29 +121,7 @@ def train_step(train_batch: tf.Tensor,
     return loss
 
 
-def train_dino(
-    arch: str = "vit_base",
-    patch_size: int = 16,
-    out_dim: int = 65_536,
-    norm_last_layer: bool = True,
-    momentum_teacher: float = 0.996,
-    use_bn_in_head: bool = False,
-    lr: float = 0.0005,
-    batch_size: int = 64,
-    weight_decay: float = 0.04,
-    weight_decay_end: float = 0.4,
-    epochs: int = 100,
-    warmup_epochs: int = 10,
-    min_lr: float = 1e-6,
-    optimizer: str = "adamw",
-    global_crops_scale: Tuple[float, float] = (0.4, 1.0),
-    local_crops_number: int = 5,
-    local_crops_scale: Tuple[float, float] = (0.05, 0.4),
-    warmup_teacher_temp: float = 0.04,
-    teacher_temp: float = 0.04,
-    warmup_teacher_temp_epochs: int = 0,
-    data_path: str = None
-  ):
+def train_dino(args):
 
     # data_loader
     data_builder = tfds.folder_dataset.ImageFolder(args.data_path)
@@ -248,10 +226,10 @@ def train_dino(
                                      student=student)
     
     ckpt_manager = tf.train.CheckpointManager(checkpoint=checkpoint, 
-                                             directory=args.output_dir + "/model/", 
+                                             directory=args.output_dir + "/dino_model/", 
                                              max_to_keep=5)
     
-    # restore latest checkpoint if an
+    # restore latest checkpoint if any checkpoint is stored.
     checkpoint.restore(ckpt_manager.latest_checkpoint)
     if ckpt_manager.latest_checkpoint:
         print("Loaded from {}".format(ckpt_manager.latest_checkpoint))
