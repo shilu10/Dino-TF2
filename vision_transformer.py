@@ -4,7 +4,7 @@ from collections import *
 import os, math, sys
 import numpy as np 
 from ml_collections import ConfigDict
-from base_config import get_baseconfig
+from .base_config import get_baseconfig
 
 
 @keras.saving.register_keras_serializable('my_package')

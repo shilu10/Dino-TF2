@@ -4,6 +4,7 @@ import numpy as np
 import tqdm, datetime, os, sys 
 from typing import * 
 import argparse
+from .vision_transformer import * 
 
 
 def get_args_parser():
