@@ -10,6 +10,7 @@ from dino_loss import DinoLoss
 from dino_head import DinoHead
 from multicrop_wrapper import MultiCropWrapper
 from utils import * 
+import tensorflow_datasets as tfds
 
 
 def get_args_parser():
