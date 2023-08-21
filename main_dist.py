@@ -4,7 +4,7 @@ import numpy as np
 import tqdm, datetime, os, sys 
 from typing import * 
 import argparse
-from vision_transformer import 
+from vision_transformer import *
 from data_augmentaton import get_multires_dataset
 from dino_loss import DinoLoss
 from dino_head import DinoHead
