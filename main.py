@@ -188,7 +188,7 @@ def train_dino(args):
     # distributed schedulers
     # ============ init schedulers ... ============
     lr_schedule = cosine_scheduler(
-          args.lr * batch_size / 256.,  # linear scaling rule
+          args.lr * args.batch_size / 256.,  # linear scaling rule
           args.min_lr,
           args.epochs, 
           len(dataloader),
