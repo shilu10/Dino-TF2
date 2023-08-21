@@ -290,6 +290,6 @@ def train_dino(args):
         loss_logger.reset_state()
 
 
-if __name__ = "__main__":
+if __name__ == "__main__":
     parser = get_args_parser()
     train_dino(parser)
