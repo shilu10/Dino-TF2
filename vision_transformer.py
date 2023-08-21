@@ -6,6 +6,8 @@ import numpy as np
 from ml_collections import ConfigDict
 from .base_config import get_baseconfig
 
+# deleting the custom object
+tf.keras.utils.get_custom_objects().clear()
 
 @keras.saving.register_keras_serializable('my_package')
 class TFViTPatchEmbeddings(tf.keras.layers.Layer):
