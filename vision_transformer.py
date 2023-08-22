@@ -601,13 +601,13 @@ class ViTClassifier(tf.keras.Model):
             epsilon=config.layer_norm_eps
         )
 
-    def build(self, input_shape: tf.TensorShape):
-      self.head = tf.keras.layers.Dense(
+        self.head = tf.keras.layers.Dense(
                 config.num_classes,
                 kernel_initializer="zeros",
                 dtype="float32",
                 name="classification_head",
             ) if self.num_classes > 0 else tf.identity
+
 
     def forward_blocks(self,
                        encoded_patches: tf.Tensor) -> tf.Tensor:
@@ -644,6 +644,9 @@ class ViTClassifier(tf.keras.Model):
 
         # accessing the cls_token feature
         output = representation[:, 0]
+
+        if self.num_classes > 0:
+          return self.head(output)
 
         return output
 
@@ -707,7 +710,11 @@ class ViTClassifier(tf.keras.Model):
       return cls(**config)
 
 
-def vit_tiny(patch_size=16, return_config=False, **kwargs):
+def vit_tiny(patch_size=16, 
+            num_classes=0, 
+            return_config=False, 
+            **kwargs):
+
   config = get_baseconfig(model_type="vit_tiny",
                       image_size=224,
                       patch_size=patch_size,
@@ -717,7 +724,8 @@ def vit_tiny(patch_size=16, return_config=False, **kwargs):
                       init_values=None,
                       dropout_rate=0.0,
                       drop_path_rate=0.0,
-                      include_top=True)
+                      include_top=True, 
+                      num_classes=num_classes)
   
   model = ViTClassifier(config, **kwargs)
   
@@ -726,7 +734,11 @@ def vit_tiny(patch_size=16, return_config=False, **kwargs):
   return model
 
 
-def vit_small(patch_size=16, return_config=False, **kwargs):
+def vit_small(patch_size=16, 
+              num_classes=0, 
+              return_config=False, 
+              **kwargs):
+
   config = get_baseconfig(model_type="vit_small",
                       image_size=224,
                       patch_size=patch_size,
@@ -736,7 +748,8 @@ def vit_small(patch_size=16, return_config=False, **kwargs):
                       init_values=None,
                       dropout_rate=0.0,
                       drop_path_rate=0.0,
-                      include_top=True)
+                      include_top=True, 
+                      num_classes=num_classes)
   
   model = ViTClassifier(config, **kwargs)
 
@@ -745,7 +758,11 @@ def vit_small(patch_size=16, return_config=False, **kwargs):
   return model
 
 
-def vit_base(patch_size=16, return_config=False, **kwargs):
+def vit_base(patch_size=16, 
+            num_classes=0, 
+            return_config=False, 
+            **kwargs):
+
   config = get_baseconfig(model_type="vit_base",
                       image_size=224,
                       patch_size=patch_size,
@@ -755,7 +772,8 @@ def vit_base(patch_size=16, return_config=False, **kwargs):
                       init_values=None,
                       dropout_rate=0.0,
                       drop_path_rate=0.0,
-                      include_top=True)
+                      include_top=True, 
+                      num_classes=num_classes)
   
   model = ViTClassifier(config, **kwargs)
   
