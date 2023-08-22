@@ -3,12 +3,41 @@ import tensorflow as tf
 import numpy as np 
 import timm, os, sys 
 import yaml
-from .vision_transformer import ViTClassifier, vit_tiny, vit_small, vit_base, TFViTAttention
-from .utils import * 
+from vision_transformer import ViTClassifier, vit_tiny, vit_small, vit_base, TFViTAttention
+from utils import * 
 
 
+def get_args_parser():
+    parser = argparse.ArgumentParser('dino-porting', add_help=False)
 
-def port(model_type, model_savepath):
+    parser.add_argument('--arch', default='vit_small', type=str,
+        choices=['vit_small_patch8_224.dino', 'vit_small_patch16_224.dino', 
+                            'vit_base_patch16_224.dino', 'vit_base_patch8_224.dino'],
+        help="""Name of architecture to train. For quick experiments with ViTs,
+        we recommend using vit_tiny or vit_small.""")
+
+    parser.add_argument('--include_top', default=False, type=bool, 
+        help="""used for including the trained linear layers""")
+
+    parser.add_argument('--model_savepath', default="models/", type=str, 
+        help='Used for saving the ported tensorflow models')
+
+    parser.add_argument('--store_model', default=True, type=bool, 
+        help="""If True, then the following function, will store the 
+        tensorflow model in form of stored_model, if false, then it 
+        stores the model_weights""")
+    
+    parser.add_argument('--patch_size', default=16, type=int, help="specify the patch_size.")
+
+
+def port(args):
+    model_type = args.arch
+    include_top = args.include_top
+    model_savepath = args.model_savepath
+
+
+    if not "base" in model_type and include_top:
+        raise NotImplementedError("Given Combination is not available.")
 
     print("Instantiating PyTorch model...")
     pt_model = timm.create_model(
@@ -21,13 +50,16 @@ def port(model_type, model_savepath):
 
     print("Instantiating TF model...")
     if "tiny" in model_type:
-        tf_model, config = vit_tiny(return_config=True)
+        tf_model, config = vit_tiny(return_config=True, 
+                                    patch_size=args.patch_size)
     
     elif "base" in model_type:
-        tf_model, config = vit_base(return_config=True)
+        tf_model, config = vit_base(return_config=True, 
+                                    patch_size=args.patch_size)
 
     elif "small" in model_type:
-        tf_model, config = vit_small(return_config=True)
+        tf_model, config = vit_small(return_config=True, 
+                                    patch_size=args.patch_size)
     
     else:
         raise NotImplementedError('given model_type is not implemented')
@@ -166,5 +198,16 @@ def port(model_type, model_savepath):
     print("Porting successful, serializing TensorFlow model...")
 
     save_path = os.path.join(model_savepath, model_type)
-    tf_model.save(save_path)
+
+    if args.store_model:
+        tf_model.save(save_path)
+    else:
+        tf_model.save_weights(save_path)
+
     print(f"TensorFlow model serialized at: {save_path}...")
+
+
+if __name__ == "__main__":
+    parser = get_args_parser()
+    args = parser.parse_args()
+    port(args)
