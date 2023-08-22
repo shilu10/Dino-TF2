@@ -41,9 +41,8 @@ def get_arg_parser():
                         help='if use_pretrained_weight is False, then need to specify the model_path', 
                         default='models/vit_base_patch16_224.dino')
     
-    args = parser.parse_args()
     
-    return args
+    return parser
     
 
 def apply_mask(image, mask, color, alpha=0.5):
