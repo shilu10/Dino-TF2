@@ -7,6 +7,7 @@ import colorsys
 import requests
 from io import BytesIO
 
+import torch
 import tensorflow as tf 
 from tensorflow import keras 
 import skimage.io
