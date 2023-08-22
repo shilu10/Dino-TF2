@@ -19,14 +19,14 @@ from PIL import Image
 from torch import nn
 import torchvision
 from copy import deepcopy
-from 
+from vision_transformer import *
 
 
 def get_arg_parser():
     parser = argparse.ArgumentParser('Visualize Self-Attention maps')
-    parser.add_argument('--arch', default='vit_small', type=str,
+    parser.add_argument('--arch', default='vit_base', type=str,
         choices=['vit_tiny', 'vit_small', 'vit_base'], help='Architecture (support only ViT atm).')
-    parser.add_argument('--patch_size', default=8, type=int, help='Patch resolution of the model.')
+    parser.add_argument('--patch_size', default=16, type=int, help='Patch resolution of the model.')
     parser.add_argument('--pretrained_weights', default='', type=str,
         help="Path to pretrained weights to load.")
     parser.add_argument("--image_path", default=None, type=str, help="Path of the image to load.")
@@ -35,8 +35,11 @@ def get_arg_parser():
     parser.add_argument("--threshold", type=float, default=None, help="""We visualize masks
         obtained by thresholding the self-attention maps to keep xx% of the mass.""")
     parser.add_argument('--use_pretrained_weights', type=bool,
-                        help='specify whether to use pretrained weights or saved models if pretrained weight is False')
-    parser.add_argument('--model_path', type=str, help='if use_pretrained_weight is False, then need to specify the model_path')
+                        help='specify whether to use pretrained weights or saved models if pretrained weight is False', 
+                        default='models/vit_base_patch16_224.dino')
+    parser.add_argument('--model_path', type=str, 
+                        help='if use_pretrained_weight is False, then need to specify the model_path', 
+                        default='models/vit_base_patch16_224.dino')
     
     args = parser.parse_args()
     
@@ -106,11 +109,11 @@ def display_instances(image, mask, fname="test", figsize=(5, 5), blur=False, con
 def main(args):
     # build model
     if args.use_pretrained_weights:
-        if 'base' in args.arch;
+        if 'base' in args.arch:
             model = vit_base(num_classes=0, patch_size=args.patch_size)
-        elif 'small' in args.arch;
+        elif 'small' in args.arch:
             model = vit_small(num_classes=0, patch_size=args.patch_size)
-        elif 'tiny' in args.arch;
+        elif 'tiny' in args.arch:
             model = vit_tiny(num_classes=0, patch_size=args.patch_size)
         else:
             print('specified architecture is not presented')
