@@ -5,6 +5,7 @@ import timm, os, sys
 import yaml
 from vision_transformer import ViTClassifier, vit_tiny, vit_small, vit_base, TFViTAttention
 from utils import * 
+import argparse
 
 
 def get_args_parser():
