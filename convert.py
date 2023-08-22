@@ -241,9 +241,9 @@ def port(args):
     if args.store_model:
         tf_model.save(save_path)
     else:
-        tf_model.save_weights(save_path)
+        tf_model.save_weights(save_path + ".h5")
 
-    print(f"TensorFlow model serialized at: {save_path}...")
+    print(f"TensorFlow model serialized at: {save_path}")
 
 
 if __name__ == "__main__":
