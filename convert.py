@@ -34,6 +34,7 @@ def port(args):
     model_type = args.arch
     include_top = args.include_top
     model_savepath = args.model_savepath
+    num_classes = 0 if not include_top else 1000
 
 
     if not "base" in model_type and include_top:
@@ -51,15 +52,18 @@ def port(args):
     print("Instantiating TF model...")
     if "tiny" in model_type:
         tf_model, config = vit_tiny(return_config=True, 
-                                    patch_size=args.patch_size)
+                                    patch_size=args.patch_size, 
+                                    num_classes=num_classes)
     
     elif "base" in model_type:
         tf_model, config = vit_base(return_config=True, 
-                                    patch_size=args.patch_size)
+                                    patch_size=args.patch_size, 
+                                    num_classes=num_classes)
 
     elif "small" in model_type:
         tf_model, config = vit_small(return_config=True, 
-                                    patch_size=args.patch_size)
+                                    patch_size=args.patch_size, 
+                                    num_classes=num_classes)
     
     else:
         raise NotImplementedError('given model_type is not implemented')
@@ -72,7 +76,34 @@ def port(args):
     pt_model_dict = pt_model.state_dict()
     pt_model_dict = {k: pt_model_dict[k].numpy() for k in pt_model_dict}
 
+    if include_top:
+        urls = {
+            "vit_base_patch8_224.dino": 'wget https://dl.fbaipublicfiles.com/dino/dino_vitbase8_pretrain/dino_vitbase8_linearweights.pth -q',
+            "vit_base_patch16_224.dino": 'wget https://dl.fbaipublicfiles.com/dino/dino_vitbase16_pretrain/dino_vitbase16_linearweights.pth -q'
+        }
+        # download weights (olinear weights)
+        cmd = urls[model_type]
+        os.system(cmd)
+
+        if "vit_base_patch8_224.dino" in model_type:
+            linear_url = 'dino_vitbase8_linearweights.pth'
+        else:
+            linear_url = 'dino_vitbase16_linearweights.pth'
+
+        linear_state_dict = torch.load(linear_url, map_location=torch.device("cpu")).get('state_dict')
+        
+        pt_model_dict['head.weight'] = np.array(linear_state_dict['module.linear.weight'])
+        pt_model_dict['head.bias'] = np.array(linear_state_dict['module.linear.bias'])
+
     print("Beginning parameter porting process...")
+
+    # classification head
+    if include_top:
+        tf_model.layers[-1] = modify_tf_block(
+            tf_model.layers[-1],
+            pt_model_dict["head.weight"],
+            pt_model_dict["head.bias"],
+        )
 
     # Projection layers.
     tf_model.layers[0].patch_embeddings.projection = modify_tf_block(
@@ -90,7 +121,7 @@ def port(args):
     tf_model.layers[0].cls_token.assign(tf.Variable(pt_model_dict["cls_token"]))
 
     # Layer norm layers.
-    ln_idx = -1
+    ln_idx = -1 if not include_top else -2 
     tf_model.layers[ln_idx] = modify_tf_block(
         tf_model.layers[ln_idx],
         pt_model_dict["norm.weight"],
