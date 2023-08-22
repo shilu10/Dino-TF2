@@ -12,7 +12,8 @@ def get_baseconfig(model_type="deit_tiny_patch16_224",
                   init_values=None,
                   dropout_rate=0.0,
                   drop_path_rate=0.0,
-                  include_top=True
+                  include_top=True, 
+                  num_classes=0,
             ):
 
     config = ConfigDict()
@@ -32,7 +33,7 @@ def get_baseconfig(model_type="deit_tiny_patch16_224",
     config.dropout_rate = dropout_rate
     config.initializer_range = 0.02
     config.layer_norm_eps = 1e-5
-    config.num_classes = 0
+    config.num_classes = num_classes
     config.name = config.model_name
 
     config.n_channels = 3

@@ -11,7 +11,7 @@ import argparse
 def get_args_parser():
     parser = argparse.ArgumentParser('dino-porting', add_help=False)
 
-    parser.add_argument('--arch', default='vit_small', type=str,
+    parser.add_argument('--arch', default='vit_small_patch8_224.dino', type=str,
         choices=['vit_small_patch8_224.dino', 'vit_small_patch16_224.dino', 
                             'vit_base_patch16_224.dino', 'vit_base_patch8_224.dino'],
         help="""Name of architecture to train. For quick experiments with ViTs,
