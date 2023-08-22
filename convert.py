@@ -30,6 +30,8 @@ def get_args_parser():
     
     parser.add_argument('--patch_size', default=16, type=int, help="specify the patch_size.")
 
+    return parser
+
 
 def port(args):
     model_type = args.arch
