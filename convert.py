@@ -77,7 +77,7 @@ def port(args):
         raise NotImplementedError('given model_type is not implemented')
 
     image_dim = 224
-    dummy_inputs = tf.ones((2, image_dim, image_dim, 3))
+    dummy_inputs = tf.ones((1, image_dim, image_dim, 3))
     _ = tf_model(dummy_inputs)[0]
 
     # Load the PT params.
