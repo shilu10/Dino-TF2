@@ -2,7 +2,7 @@ from tensorflow import keras
 import tensorflow as tf 
 import numpy as np 
 import timm, os, sys 
-import yaml
+import yaml, torch
 from vision_transformer import ViTClassifier, vit_tiny, vit_small, vit_base, TFViTAttention
 from utils import * 
 import argparse
