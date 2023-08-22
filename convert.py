@@ -39,6 +39,7 @@ def port(args):
     model_savepath = args.model_savepath
     num_classes = 0 if not include_top else 1000
 
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
     if not "base" in model_type and include_top:
         raise NotImplementedError("Given Combination is not available.")
