@@ -186,6 +186,8 @@ def main(args):
     attentions = attentions.reshape(nh, w_featmap, h_featmap)
     attentions = nn.functional.interpolate(attentions.unsqueeze(0), scale_factor=args.patch_size, mode="nearest")[0].cpu().numpy()
 
+    os.makedirs(args.output_dir, exist_ok=True)
+    
     for j in range(nh):
             fname = os.path.join(args.output_dir, "attn-head" + str(j) + ".png")
             plt.imsave(fname=fname, arr=attentions[j], format='png')
