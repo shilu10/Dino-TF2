@@ -724,7 +724,7 @@ class ViTClassifier(tf.keras.Model):
                 output_attentions = True
             )
 
-        attention_score[f'{transformer_module.name}'] = attention_score
+        attention_scores[f'{transformer_module.name}'] = attention_score
 
       return attention_scores
 
