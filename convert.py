@@ -6,6 +6,10 @@ import yaml
 from vision_transformer import ViTClassifier, vit_tiny, vit_small, vit_base, TFViTAttention
 from utils import * 
 import argparse
+import warnings
+warnings.filterwarnings('ignore')
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+
 
 
 def get_args_parser():
