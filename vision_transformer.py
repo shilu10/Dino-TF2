@@ -703,6 +703,30 @@ class ViTClassifier(tf.keras.Model):
           output.append(self.layer_norm(encoded_patches))
 
       return output
+    
+    def get_selfattention(self,
+                          inputs: tf.Tensor,
+                          training: bool = False) -> Dict:
+      n = tf.shape(inputs)[0]
+
+      # Create patches and project the patches.
+      projected_patches = self.patch_embed(inputs)
+
+      # dropout for projected patches
+      encoded_patches = self.dropout(projected_patches)
+
+      attention_scores = {}
+      # Iterate over the number of layers and stack up blocks of Transformer.
+      for indx, transformer_module in enumerate(self.transformer_blocks):
+        # Add a Transformer block.
+        encoded_patches, attention_score = transformer_module(
+                encoded_patches,
+                output_attentions = True
+            )
+
+        attention_score[f'{transformer_module.name}'] = attention_score
+
+      return attention_scores
 
     def get_config(self):
       config = super().get_config()
