@@ -643,12 +643,17 @@ class ViTClassifier(tf.keras.Model):
         representation = self.layer_norm(encoded_patches)
 
         # accessing the cls_token feature
-        output = representation[:, 0]
+        encoded_patches = representation[:, 0]
 
         if self.num_classes > 0:
+          encoded_patches_exp = tf.expand_dims(encoded_patches, -1)
+          avg_patch_tokens = tf.reduce_mean(representation[:, 1:], 1)
+          avg_patch_tokens = tf.expand_dims(avg_patch_tokens, -1)
+          output = tf.concat([encoded_patches_exp, avg_patch_tokens], -1)
+          output = tf.reshape(output, (n, -1))
           return self.head(output)
 
-        return output
+        return encoded_patches
 
     def get_last_selfattention(self,
                                inputs: tf.Tensor,
