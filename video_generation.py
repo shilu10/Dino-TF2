@@ -314,5 +314,13 @@ def get_arg_parser():
         help="filename for the attention video.",
     )
 
-    return parser.parse_args()
+    return parser
+
+
+if __name__ == "__main__":
+    parser = get_arg_parser()
+    args = parser.parse_args()
+    video_generator = VideoGeneratorTF(args)
+
+    video_generator.run()
            
