@@ -121,7 +121,7 @@ def main(args):
             
         model.load_weights(args.pretrained_weights)
     else:
-        model.load_model(args.model_path)
+        tf.load_model(args.model_path)
 
     # open image
     if args.image_path is None:
